@@ -9,6 +9,5 @@ import { createWatermark, observeWatermark, Guard } from '../utils'
 
 export const image2page: (config: WaterMarkConfig) => Guard =(config) => {
   const watermark = createWatermark(config)
-  const observe = observeWatermark(watermark, config)
-  return observe
+  return observeWatermark(watermark, config)
 }

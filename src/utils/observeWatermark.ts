@@ -6,7 +6,14 @@ import { WaterMarkConfig } from '../types'
  * @param config 水印配置
  * @returns 监视器observe，配有remove方法，可以删除水印
  */
-export const observeWatermark = (watermark: HTMLDivElement, config: WaterMarkConfig) => {
+
+// @ts-ignore
+const MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
+
+export const observeWatermark = (
+  watermark: HTMLDivElement,
+  config: WaterMarkConfig
+) => {
   const { onchange, success } = config
   const observe = new Guard(watermark, onchange)
   success()
@@ -14,48 +21,63 @@ export const observeWatermark = (watermark: HTMLDivElement, config: WaterMarkCon
 }
 
 export class Guard {
-  watermarkParent: HTMLElement
-  watermarkClone: HTMLElement
+  parentElement: HTMLElement
   observer!: MutationObserver
+  private elementClone: HTMLElement
+  private setIntervalId: number | undefined
 
-  constructor(public watermark: HTMLElement, public onchange: Function) {
+  constructor(public element: HTMLElement, public onchange: Function) {
     // 获取watermark的父元素：监视的对象
-    this.watermarkParent = this.watermark.parentElement as HTMLElement
+    this.parentElement = this.element.parentElement as HTMLElement
     // 克隆一个watermark：当watermark被删除时添加watermarkClone
-    this.watermarkClone = watermark.cloneNode(true) as HTMLElement
+    this.elementClone = element.cloneNode(true) as HTMLElement
   }
 
   start() {
-    const config = { characterData: true, attributes: true, childList: true, subtree: true }
-
-    this.observer = new MutationObserver(this._callback)
-    if (!this.observer) {
-      throw new Error(`Not exist: new MutationObserver()`)
+    const config = {
+      characterData: true,
+      attributes: true,
+      childList: true,
+      subtree: true
     }
-    this.observer.observe(this.watermarkParent, config)
+    if (MutationObserver) {
+      this.observer = new MutationObserver(this._callback)
+      this.observer.observe(this.parentElement, config)
+    } else {
+      this.setIntervalId = window.setInterval(() => {
+        const newWatermark = this.elementClone.cloneNode(true) as HTMLElement
+        this.parentElement.replaceChild(newWatermark, this.element)
+        this.element = newWatermark
+      }, 200)
+    }
   }
 
   stop() {
-    this.observer.disconnect()
-    this.watermark.remove()
+    if (this.observer) {
+      this.observer.disconnect()
+    } else if (this.setIntervalId) {
+      window.clearInterval(this.setIntervalId)
+    }
+    this.element.remove()
   }
 
-  _callback = (mutationsList: MutationRecord[]) => {
+
+  private _callback = (mutationsList: MutationRecord[]) => {
     let needRestart = false
     for (const mutation of mutationsList) {
       if (mutation.type === 'childList') {
         for (let i = 0; i < mutation.removedNodes.length; i++) {
-          if (mutation.removedNodes[i] === this.watermark) {
+          if (mutation.removedNodes[i] === this.element) {
             needRestart = true
             break
           }
         }
-      } else if (mutation.target === this.watermark) {
+      } else if (mutation.target === this.element) {
         needRestart = true
       }
       if (needRestart) {
         this.onchange(mutation)
-        this._readdWatermark()
+        this._reAddWatermark()
         this.start()
         break
       }
@@ -63,11 +85,13 @@ export class Guard {
   }
 
   // 重新添加水印dom
-  _readdWatermark() {
-    const newWatermark = this.watermarkClone.cloneNode(true) as HTMLElement
-    this.watermarkParent.appendChild(newWatermark)
-    this.watermark = newWatermark
-    this.observer.disconnect()
+  private _reAddWatermark() {
+    const newWatermark = this.elementClone.cloneNode(true) as HTMLElement
+    this.parentElement.appendChild(newWatermark)
+    this.element = newWatermark
+    if (this.observer) {
+      this.observer.disconnect()
+    }
     this.start()
   }
 }

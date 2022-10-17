@@ -1,5 +1,5 @@
 import { WaterMarkConfig } from '../types'
-import { getTextSize, createWatermark, observeWatermark, Guard } from '../utils'
+import { createWatermark, getTextSize, Guard, observeWatermark } from '../utils'
 
 /**
  * @description 向页面中添加文字水印
@@ -34,6 +34,5 @@ export const text2page: (config: WaterMarkConfig) => Guard =(config) => {
   config.image = canvas.toDataURL()
 
   const watermark = createWatermark(config)
-  const observe = observeWatermark(watermark, config)
-  return observe
+  return observeWatermark(watermark, config)
 }

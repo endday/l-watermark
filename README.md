@@ -47,7 +47,7 @@ import WaterMark from "l-watermark"
 
 ```js
 WaterMark.page({
-  targe: document.body,
+  target: document.body,
   text: "Internal Data",
   color: "rgba(0, 0, 0, 0.4)",
   fontSize: 24
@@ -60,7 +60,7 @@ WaterMark.page({
 
 ```js
 WaterMark.page({
-  targe: document.getElementById("hello_world"),
+  target: document.getElementById("hello_world"),
   image: "https://cdn.jsdelivr.net/gh/CleverLiurx/image_repo/glass15-wm.png",
   cSpace: 20,
   vSpace: 50
